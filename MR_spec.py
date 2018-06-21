@@ -60,7 +60,20 @@ def mass_torres2010(teff,logg,feh):
     Mcor = 0.791*MT**2.-0.575*MT+0.701 # Santos et al 2013 correction
   else:
     Mcor = MT
-  return (MT,Mcor)
+  return (MT,Mcor, logM)
+
+
+
+def radius_torres2010(teff,logg,feh):
+  """
+  Get the radius of a star using the Torres calibrations from 2010
+  """
+  bi=[2.4427,0.6679,0.1771,0.705,-0.21415, 0.02306,0.04173]
+#  ebi=[0.038,0.016,0.027,0.13,0.0075,0.0013,0.0082]
+  X=np.log10(teff)-4.1
+  logR=bi[0]+bi[1]*X+bi[2]*X**2.+bi[3]*X**3+bi[4]*logg**2+bi[5]*logg**3+bi[6]*feh
+  RT=10**logR
+  return (RT, logR)
 
 
 def radius_torres2010_error(teff, erteff, logg, erlogg, feh, erfeh, npoints = 10000):
@@ -73,10 +86,19 @@ def radius_torres2010_error(teff, erteff, logg, erlogg, feh, erfeh, npoints = 10
   fehs  = np.random.normal(feh, erfeh, npoints)
 
   radius_dist = np.zeros(npoints)
+  logradius_dist = np.zeros(npoints)
+
   for i in range(npoints):
-    RT = radius_torres2010(teffs[i],loggs[i],fehs[i])
+    RT, logR = radius_torres2010(teffs[i],loggs[i],fehs[i])
     radius_dist[i] = RT
-  return np.mean(radius_dist), np.std(radius_dist)
+    logradius_dist = logR
+
+  meanlogR = np.mean(logR)
+  stdlogR = np.std(logR)
+  R = 10**meanlogR
+  erlogR = np.sqrt(stdlogR**2. + 0.014**2.)
+  erR =  10**(meanlogR + erlogR) - R
+  return R, erR
 
 
 
@@ -90,11 +112,23 @@ def mass_torres2010_error(teff, erteff, logg, erlogg, feh, erfeh, npoints = 1000
   fehs  = np.random.normal(feh, erfeh, npoints)
 
   mass_dist = np.zeros(npoints)
+  logmass_dist = np.zeros(npoints)
   for i in range(npoints):
-    MT, Mcor = mass_torres2010(teffs[i],loggs[i],fehs[i])
+    MT, Mcor, logM  = mass_torres2010(teffs[i],loggs[i],fehs[i])
     mass_dist[i] = Mcor
-  MT, Mcor = mass_torres2010(teff,logg,feh)
-  return MT, Mcor, np.mean(mass_dist), np.std(mass_dist), np.sqrt(np.std(mass_dist)**2. + 0.027**2.)
+    logmass_dist[i] = logM
+  meanlogM = np.mean(logmass_dist)
+  stdlogM = np.std(logmass_dist)
+  errorlogM = np.sqrt(stdlogM**2. + 0.027**2.)
+  MT = 10**meanlogM
+  #limits of correction
+  if MT >= 0.7 and MT <= 1.3:
+    Mcor = 0.791*MT**2.-0.575*MT+0.701 # Santos et al 2013 correction
+  else:
+    Mcor = MT
+  errorM = 10**(meanlogM + errorlogM) - MT
+
+  return MT, Mcor, errorM
 
 
 
