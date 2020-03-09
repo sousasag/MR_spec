@@ -93,8 +93,8 @@ def radius_torres2010_error(teff, erteff, logg, erlogg, feh, erfeh, npoints = 10
     radius_dist[i] = RT
     logradius_dist = logR
 
-  meanlogR = np.mean(logR)
-  stdlogR = np.std(logR)
+  meanlogR = np.mean(logradius_dist)
+  stdlogR = np.std(logradius_dist)
   R = 10**meanlogR
   erlogR = np.sqrt(stdlogR**2. + 0.014**2.)
   erR =  10**(meanlogR + erlogR) - R
