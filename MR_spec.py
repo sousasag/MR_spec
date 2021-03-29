@@ -143,12 +143,12 @@ def test_functions():
     feh = 0.0
     er_feh = 0.05
     print (massTorres_online(teff, er_teff, logg, er_logg, feh, er_feh))
-    print mass_torres2010_error(teff, er_teff, logg, er_logg, feh, er_feh)
+    print (mass_torres2010_error(teff, er_teff, logg, er_logg, feh, er_feh))
 
 
 ### Main program:
 def main():
-  print "Hello"
+  print ("Hello")
   test_functions()
 
 
