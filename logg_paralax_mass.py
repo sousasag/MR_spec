@@ -113,8 +113,17 @@ def main():
 
 #    logg_mass_iteractive(5810, 21, 4.33, 0.03, 0.21, 0.02, 5.2832, 0.0028, 64.4048, 0.0771)
 #    logg_mass_iteractive(6330, 130, 4.37, 0.2, 0.31, 0.15, 12.6441, 0.0028, 1.6613, 0.0126)
-    print(logg_mass_iteractive_error(6382, 22, 4.60, 0.04, 0.07, 0.02, 7.6937, 0.0028, 17.8725, 0.0206))
+#    print(logg_mass_iteractive_error(6382, 22, 4.60, 0.04, 0.07, 0.02, 7.6937, 0.0028, 17.8725, 0.0206))
+    teff = 5433; eteff = 62; loggs = 4.404; eloggs = 0.111; feh = -0.548; efeh=0.042;
+    par = 5.3891; epar = 0.0263; gmag = 11.5837; egmag = 0.0028
 
+#    print(logg_mass_iteractive_error(4684, 99, 4.16, 0.24, -0.203, 0.05, 9.389915, 0.002759, 25.5817, 0.0127))
+#    print(MR.radius_torres2010_error(4684, 99, 4.533, 0.056, -0.203, 0.05))
+
+    loggh, eloggh, massh, emassh = logg_mass_iteractive_error(teff, eteff, loggs, eloggs, feh, efeh, gmag, egmag, par, epar)
+    rh, erh = MR.radius_torres2010_error(teff, eteff, loggh, eloggh, feh, efeh)
+
+    print(loggh, eloggh, massh, emassh, rh, erh)
 
 
 if __name__ == '__main__':
