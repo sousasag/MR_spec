@@ -34,6 +34,68 @@ def BC_g_Andrae(Teff, Tsun = 5777):
     sbcg = np.sum([sa[i]*(Teff-Tsun)**i for i in range(len(sa))])
     return bcg, sbcg
 
+def bc_flower(teff):
+  """
+  Get the bolometric correction using the relations from flower 1996
+  """
+  lteff=np.log10(teff)
+  if (lteff<3.7):
+    bcflow=-0.190537291496456e+05+0.155144866764412e+05*lteff-0.421278819301717e+04*(lteff*lteff)+0.381476328422343e+03*(lteff*lteff*lteff)
+  if (lteff>=3.7 and lteff<3.9):
+    bcflow=-0.370510203809015e+05+0.385672629965804e+05*lteff-0.150651486316025e+05*(lteff*lteff)+0.261724637119416e+04*(lteff*lteff*lteff)-0.170623810323864e+03*(lteff*lteff*lteff*lteff)
+  if (lteff>=3.9):
+    bcflow=-0.370510203809015e+05+0.385672629965804e+05*lteff-0.150651486316025e+05*(lteff*lteff)+0.261724637119416e+04*(lteff*lteff*lteff)-0.170623810323864e+03*(lteff*lteff*lteff*lteff)
+  return bcflow
+
+def get_logg_hip(mass, teff, paralax, vmag):
+  bcflow = bc_flower(teff)
+  logg_hip = np.log10(mass) + 4.*np.log10(teff/5777.) + 2.*np.log10(paralax/1000.) + 0.4 * (vmag + bcflow) + 0.11 + 4.44
+  return logg_hip
+
+def logg_mass_hip_interactive(teffs,loggs,fehs,vmag, paralax):
+    logg_ga = -100000
+    niter = 0
+    logg_g = loggs
+    while(abs(logg_g-logg_ga) > 0.01 and niter < 10):
+        MT, Mcor, logM  = MR.mass_torres2010(teffs,logg_g,fehs)
+        logg_ga = logg_g
+        logg_g = get_logg_hip(Mcor, teffs, paralax, vmag)
+        #print(niter, Mcor, logg_ga, logg_g)
+        niter +=1
+    if niter >= 10:
+        print("Did not converge!")
+    #print(logg_g, Mcor)
+    return logg_g, Mcor
+
+def logg_mass_hip_iteractive_error(teffs, eteffs, loggs, eloggs, fehs, efehs, vmag, evmag, paralax, eparalax, npoints=10000):
+    teffss = np.random.normal(teffs, eteffs, npoints)
+    loggss = np.random.normal(loggs, eloggs, npoints)
+    fehss = np.random.normal(fehs, efehs, npoints)
+    vmags = np.random.normal(vmag, evmag, npoints)
+    paralaxs = np.random.normal(paralax, eparalax, npoints)
+    logg_dist = np.zeros(npoints)
+    mass_dist = np.zeros(npoints)
+    for i in range(npoints):
+#        print(i, teffss[i], loggss[i], fehss[i], gaia_gmags[i], gaia_paralaxs[i])
+        logg_dist[i], mass_dist[i] = logg_mass_iteractive(teffss[i], loggss[i], fehss[i], vmags[i], paralaxs[i])
+
+    meanlogg = np.nanmean(logg_dist)
+    stdlogg = np.nanstd(logg_dist)
+    meanmass = np.nanmean(mass_dist)
+    stdmass = np.nanstd(mass_dist)
+
+#    plt.figure(1)
+#    plt.hist(logg_gaia_dist)
+#    plt.figure(2)
+#    plt.hist(mass_gaia_dist)
+#    plt.show()
+
+    return meanlogg, stdlogg, meanmass, stdmass
+
+
+
+
+
 def logg_gaia(mass, teff, gaia_gmag, gaia_paralax, Ag = 0, teff_sun=5777):
 
     MG = gaia_gmag + 5 - 5*log10(1000./gaia_paralax) - Ag
@@ -61,7 +123,7 @@ def logg_gaia_error(mass, emass, teff, eteff, gaia_gmag, egaia_gmag, gaia_parala
 
 
 def logg_mass_iteractive(teffs, loggs, fehs, gaia_gmag, gaia_paralax, Ag=0, teff_sun=5777):
-    logg_ga = 0
+    logg_ga = -100000
     niter = 0
     logg_g = loggs
     while(abs(logg_g-logg_ga) > 0.01 and niter < 10):
@@ -70,6 +132,8 @@ def logg_mass_iteractive(teffs, loggs, fehs, gaia_gmag, gaia_paralax, Ag=0, teff
         logg_g = logg_gaia(Mcor, teffs, gaia_gmag, gaia_paralax, Ag=Ag, teff_sun=teff_sun)
         #print(niter, Mcor, logg_ga, logg_g)
         niter +=1
+    if niter >= 10:
+        print("Did not converge!")
     #print(logg_g, Mcor)
     return logg_g,Mcor
 
@@ -83,6 +147,7 @@ def logg_mass_iteractive_error(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_g
     logg_gaia_dist = np.zeros(npoints)
     mass_gaia_dist = np.zeros(npoints)
     for i in range(npoints):
+#        print(i, teffss[i], loggss[i], fehss[i], gaia_gmags[i], gaia_paralaxs[i])
         logg_gaia_dist[i], mass_gaia_dist[i] = logg_mass_iteractive(teffss[i], loggss[i], fehss[i], gaia_gmags[i], gaia_paralaxs[i])
 
     meanlogg = np.nanmean(logg_gaia_dist)
@@ -119,6 +184,12 @@ def main():
 
 #    print(logg_mass_iteractive_error(4684, 99, 4.16, 0.24, -0.203, 0.05, 9.389915, 0.002759, 25.5817, 0.0127))
 #    print(MR.radius_torres2010_error(4684, 99, 4.533, 0.056, -0.203, 0.05))
+    teff = 4773; eteff= 94; loggs= 4.59; eloggs= 1.46; feh = -0.22; efeh =  0.6; 
+    par = 2.2893; epar =  0.0271; gmag = 14.5759; egmag = 0.0028
+
+
+    teff = 4552; eteff= 154; loggs= 4.198; eloggs= 0.576; feh = -0.28; efeh =  0.067; 
+    par = 36.3525; epar =  0.0161; gmag = 9.407; egmag = 0.00277
 
     loggh, eloggh, massh, emassh = logg_mass_iteractive_error(teff, eteff, loggs, eloggs, feh, efeh, gmag, egmag, par, epar)
     rh, erh = MR.radius_torres2010_error(teff, eteff, loggh, eloggh, feh, efeh)
