@@ -96,9 +96,12 @@ def logg_mass_hip_iteractive_error(teffs, eteffs, loggs, eloggs, fehs, efehs, vm
 
 
 
-def logg_gaia(mass, teff, gaia_gmag, gaia_paralax, Ag = 0, teff_sun=5777):
+def logg_gaia(mass, teff, gaia_gmag, gaia_paralax, Ag = 0, teff_sun=5777, distance_gaia = 0):
 
-    MG = gaia_gmag + 5 - 5*log10(1000./gaia_paralax) - Ag
+    if distance_gaia == 0:
+      MG = gaia_gmag + 5 - 5*log10(1000./gaia_paralax) - Ag
+    else:
+      MG = gaia_gmag + 5 - 5*log10(distance_gaia) - Ag  
     bcg,sbcg = BC_g_Andrae(teff)
     mbol_star = MG + bcg
     mbol_sun = 4.74  #IAU Resolution 2015
@@ -106,30 +109,31 @@ def logg_gaia(mass, teff, gaia_gmag, gaia_paralax, Ag = 0, teff_sun=5777):
     logg_gaia = log10(mass) + 4*log10(teff)-4*log10(teff_sun) + 0.4*mbol_star - 0.4*mbol_sun + logg_sun
     return logg_gaia
 
-def logg_gaia_error(mass, emass, teff, eteff, gaia_gmag, egaia_gmag, gaia_paralax, egaia_paralax, Ag=0, teff_sun=5777, npoints = 10000):
+def logg_gaia_error(mass, emass, teff, eteff, gaia_gmag, egaia_gmag, gaia_paralax, egaia_paralax, Ag=0, teff_sun=5777, distance_gaia = 0, e_distance_gaia=0, npoints = 10000):
     masss = np.random.normal(mass, emass, npoints)
     teffs = np.random.normal(teff, eteff, npoints)
     gaia_gmags = np.random.normal(gaia_gmag, egaia_gmag, npoints)
     gaia_paralaxs = np.random.normal(gaia_paralax, egaia_paralax, npoints)
+    gaia_distance = np.random.normal(distance_gaia, e_distance_gaia, npoints)
 
     logg_gaia_dist = np.zeros(npoints)
 
     for i in range(npoints):
-        logg_gaia_dist[i] = logg_gaia(masss[i], teffs[i], gaia_gmags[i], gaia_paralaxs[i])
+        logg_gaia_dist[i] = logg_gaia(masss[i], teffs[i], gaia_gmags[i], gaia_paralaxs[i], distance_gaia = gaia_distance[i])
 
     meanlogg = np.nanmean(logg_gaia_dist)
     stdlogg = np.nanstd(logg_gaia_dist)
     return meanlogg, stdlogg
 
 
-def logg_mass_iteractive(teffs, loggs, fehs, gaia_gmag, gaia_paralax, Ag=0, teff_sun=5777):
+def logg_mass_iteractive(teffs, loggs, fehs, gaia_gmag, gaia_paralax, Ag=0, teff_sun=5777, distance_gaia = 0):
     logg_ga = -100000
     niter = 0
     logg_g = loggs
     while(abs(logg_g-logg_ga) > 0.01 and niter < 10):
         MT, Mcor, logM  = MR.mass_torres2010(teffs,logg_g,fehs)
         logg_ga = logg_g
-        logg_g = logg_gaia(Mcor, teffs, gaia_gmag, gaia_paralax, Ag=Ag, teff_sun=teff_sun)
+        logg_g = logg_gaia(Mcor, teffs, gaia_gmag, gaia_paralax, Ag=Ag, teff_sun=teff_sun, distance_gaia=distance_gaia)
         #print(niter, Mcor, logg_ga, logg_g)
         niter +=1
     if niter >= 10:
@@ -138,17 +142,18 @@ def logg_mass_iteractive(teffs, loggs, fehs, gaia_gmag, gaia_paralax, Ag=0, teff
     return logg_g,Mcor
 
 
-def logg_mass_iteractive_error(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_gmag, egaia_gmag, gaia_paralax, egaia_paralax, Ag=0, teff_sun=5777, npoints=10000):
+def logg_mass_iteractive_error(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_gmag, egaia_gmag, gaia_paralax, egaia_paralax, Ag=0, teff_sun=5777, distance_gaia = 0, e_distance_gaia=0, npoints=10000):
     teffss = np.random.normal(teffs, eteffs, npoints)
     loggss = np.random.normal(loggs, eloggs, npoints)
     fehss = np.random.normal(fehs, efehs, npoints)
     gaia_gmags = np.random.normal(gaia_gmag, egaia_gmag, npoints)
     gaia_paralaxs = np.random.normal(gaia_paralax, egaia_paralax, npoints)
+    gaia_distance = np.random.normal(distance_gaia, e_distance_gaia, npoints)
     logg_gaia_dist = np.zeros(npoints)
     mass_gaia_dist = np.zeros(npoints)
     for i in range(npoints):
 #        print(i, teffss[i], loggss[i], fehss[i], gaia_gmags[i], gaia_paralaxs[i])
-        logg_gaia_dist[i], mass_gaia_dist[i] = logg_mass_iteractive(teffss[i], loggss[i], fehss[i], gaia_gmags[i], gaia_paralaxs[i])
+        logg_gaia_dist[i], mass_gaia_dist[i] = logg_mass_iteractive(teffss[i], loggss[i], fehss[i], gaia_gmags[i], gaia_paralaxs[i], distance_gaia=gaia_distance[i])
 
     meanlogg = np.nanmean(logg_gaia_dist)
     stdlogg = np.nanstd(logg_gaia_dist)
@@ -163,9 +168,10 @@ def logg_mass_iteractive_error(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_g
 
     return meanlogg, stdlogg, meanmass, stdmass
        
-
-
-
+def get_logg_mass_radius_gaia_torres(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_gmag, egaia_gmag, gaia_paralax, egaia_paralax, Ag=0, teff_sun=5777, distance_gaia = 0, e_distance_gaia=0, npoints=10000):
+    meanlogg, stdlogg, meanmass, stdmass = logg_mass_iteractive_error(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_gmag, egaia_gmag, gaia_paralax, egaia_paralax, Ag=Ag, teff_sun=teff_sun, distance_gaia=distance_gaia, e_distance_gaia=e_distance_gaia, npoints=npoints)
+    r, er = MR.radius_torres2010_error(teffs, eteffs, meanlogg, stdlogg, fehs, efehs, npoints = npoints)
+    return meanlogg, stdlogg, meanmass, stdmass, r, er
 
 
 def main():
