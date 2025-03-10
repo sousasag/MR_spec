@@ -25,7 +25,7 @@ def massTorres_online(teff, erteff, logg, erlogg, feh, erfeh):
 
     M = np.zeros(ntrials)
     logM = np.zeros(ntrials)
-    for i in xrange(ntrials):
+    for i in range(ntrials):
         X = np.log10(randomteff[i]) - 4.1
         logMass = a1 + a2 * X + a3 * X * X + a4 * X * X * X + a5 *\
             randomlogg[i] * randomlogg[i] + a6 * randomlogg[i] *\
@@ -44,11 +44,13 @@ def massTorres_online(teff, erteff, logg, erlogg, feh, erfeh):
     return meanMass, sigMass
 
 
-def mass_torres2010(teff,logg,feh):
+def mass_torres2010(teff,logg,feh,calib='torres'):
   """
   Get the mass of a star using the Torres calibrations from 2010
   """
   ai=[1.5689,1.3787,0.4243,1.139,-0.1425,0.01969,0.1010]
+  if calib == 'maxted':
+    ai=[2.424296, 2.14856, -0.525793, -2.602827, -0.257692, 0.038228, 0.131524]
 #  eai=[0.058,0.029,0.029,0.24,0.011,0.0019,0.014]
   X=np.log10(teff)-4.1
   logM=ai[0]+ai[1]*X+ai[2]*X**2.+ai[3]*X**3+ai[4]*logg**2+ai[5]*logg**3+ai[6]*feh
@@ -56,7 +58,7 @@ def mass_torres2010(teff,logg,feh):
 
 
   #limits of correction
-  if MT >= 0.7 and MT <= 1.3:
+  if MT >= 0.7 and MT <= 1.3 and calib == 'torres':
     Mcor = 0.791*MT**2.-0.575*MT+0.701 # Santos et al 2013 correction
   else:
     Mcor = MT
@@ -64,11 +66,14 @@ def mass_torres2010(teff,logg,feh):
 
 
 
-def radius_torres2010(teff,logg,feh):
+def radius_torres2010(teff,logg,feh, calib='torres'):
   """
   Get the radius of a star using the Torres calibrations from 2010
   """
+
   bi=[2.4427,0.6679,0.1771,0.705,-0.21415, 0.02306,0.04173]
+  if calib == 'maxted':
+    bi=[2.793499, 1.343062, 0.723002, -0.197217, -0.254468, 0.029573, 0.067008]
 #  ebi=[0.038,0.016,0.027,0.13,0.0075,0.0013,0.0082]
   X=np.log10(teff)-4.1
   logR=bi[0]+bi[1]*X+bi[2]*X**2.+bi[3]*X**3+bi[4]*logg**2+bi[5]*logg**3+bi[6]*feh
@@ -76,7 +81,7 @@ def radius_torres2010(teff,logg,feh):
   return (RT, logR)
 
 
-def radius_torres2010_error(teff, erteff, logg, erlogg, feh, erfeh, npoints = 10000):
+def radius_torres2010_error(teff, erteff, logg, erlogg, feh, erfeh, npoints = 10000, calib='torres'):
   """
   Get the radius of a star using the Torres calibrations from 2010
   Compute the errors as in Santos et al. 2013
@@ -89,7 +94,7 @@ def radius_torres2010_error(teff, erteff, logg, erlogg, feh, erfeh, npoints = 10
   logradius_dist = np.zeros(npoints)
 
   for i in range(npoints):
-    RT, logR = radius_torres2010(teffs[i],loggs[i],fehs[i])
+    RT, logR = radius_torres2010(teffs[i],loggs[i],fehs[i], calib=calib)
     radius_dist[i] = RT
     logradius_dist = logR
 
@@ -102,7 +107,7 @@ def radius_torres2010_error(teff, erteff, logg, erlogg, feh, erfeh, npoints = 10
 
 
 
-def mass_torres2010_error(teff, erteff, logg, erlogg, feh, erfeh, npoints = 10000):
+def mass_torres2010_error(teff, erteff, logg, erlogg, feh, erfeh, npoints = 10000, calib='torres'):
   """
   Get the mass of a star using the Torres calibrations from 2010
   Compute the errors as in Santos et al. 2013
@@ -114,7 +119,7 @@ def mass_torres2010_error(teff, erteff, logg, erlogg, feh, erfeh, npoints = 1000
   mass_dist = np.zeros(npoints)
   logmass_dist = np.zeros(npoints)
   for i in range(npoints):
-    MT, Mcor, logM  = mass_torres2010(teffs[i],loggs[i],fehs[i])
+    MT, Mcor, logM  = mass_torres2010(teffs[i],loggs[i],fehs[i], calib=calib)
     mass_dist[i] = Mcor
     logmass_dist[i] = logM
   meanlogM = np.mean(logmass_dist)
@@ -122,7 +127,7 @@ def mass_torres2010_error(teff, erteff, logg, erlogg, feh, erfeh, npoints = 1000
   errorlogM = np.sqrt(stdlogM**2. + 0.027**2.)
   MT = 10**meanlogM
   #limits of correction
-  if MT >= 0.7 and MT <= 1.3:
+  if MT >= 0.7 and MT <= 1.3 and calib == 'torres':
     Mcor = 0.791*MT**2.-0.575*MT+0.701 # Santos et al 2013 correction
   else:
     Mcor = MT
@@ -144,6 +149,7 @@ def test_functions():
     er_feh = 0.05
     print (massTorres_online(teff, er_teff, logg, er_logg, feh, er_feh))
     print (mass_torres2010_error(teff, er_teff, logg, er_logg, feh, er_feh))
+    print (mass_torres2010_error(teff, er_teff, logg, er_logg, feh, er_feh, calib='maxted'))
 
 
 ### Main program:
