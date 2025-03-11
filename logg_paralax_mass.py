@@ -126,12 +126,12 @@ def logg_gaia_error(mass, emass, teff, eteff, gaia_gmag, egaia_gmag, gaia_parala
     return meanlogg, stdlogg
 
 
-def logg_mass_iteractive(teffs, loggs, fehs, gaia_gmag, gaia_paralax, Ag=0, teff_sun=5777, distance_gaia = 0):
+def logg_mass_iteractive(teffs, loggs, fehs, gaia_gmag, gaia_paralax, Ag=0, teff_sun=5777, distance_gaia = 0, calib='torres'):
     logg_ga = -100000
     niter = 0
     logg_g = loggs
     while(abs(logg_g-logg_ga) > 0.01 and niter < 10):
-        MT, Mcor, logM  = MR.mass_torres2010(teffs,logg_g,fehs)
+        MT, Mcor, logM  = MR.mass_torres2010(teffs,logg_g,fehs, calib=calib)
         logg_ga = logg_g
         logg_g = logg_gaia(Mcor, teffs, gaia_gmag, gaia_paralax, Ag=Ag, teff_sun=teff_sun, distance_gaia=distance_gaia)
         #print(niter, Mcor, logg_ga, logg_g)
@@ -142,7 +142,7 @@ def logg_mass_iteractive(teffs, loggs, fehs, gaia_gmag, gaia_paralax, Ag=0, teff
     return logg_g,Mcor
 
 
-def logg_mass_iteractive_error(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_gmag, egaia_gmag, gaia_paralax, egaia_paralax, Ag=0, teff_sun=5777, distance_gaia = 0, e_distance_gaia=0, npoints=10000):
+def logg_mass_iteractive_error(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_gmag, egaia_gmag, gaia_paralax, egaia_paralax, Ag=0, teff_sun=5777, distance_gaia = 0, e_distance_gaia=0, npoints=10000, calib='torres'):
     teffss = np.random.normal(teffs, eteffs, npoints)
     loggss = np.random.normal(loggs, eloggs, npoints)
     fehss = np.random.normal(fehs, efehs, npoints)
@@ -153,7 +153,7 @@ def logg_mass_iteractive_error(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_g
     mass_gaia_dist = np.zeros(npoints)
     for i in range(npoints):
 #        print(i, teffss[i], loggss[i], fehss[i], gaia_gmags[i], gaia_paralaxs[i])
-        logg_gaia_dist[i], mass_gaia_dist[i] = logg_mass_iteractive(teffss[i], loggss[i], fehss[i], gaia_gmags[i], gaia_paralaxs[i], distance_gaia=gaia_distance[i])
+        logg_gaia_dist[i], mass_gaia_dist[i] = logg_mass_iteractive(teffss[i], loggss[i], fehss[i], gaia_gmags[i], gaia_paralaxs[i], distance_gaia=gaia_distance[i], calib=calib)
 
     meanlogg = np.nanmean(logg_gaia_dist)
     stdlogg = np.nanstd(logg_gaia_dist)
@@ -168,9 +168,9 @@ def logg_mass_iteractive_error(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_g
 
     return meanlogg, stdlogg, meanmass, stdmass
        
-def get_logg_mass_radius_gaia_torres(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_gmag, egaia_gmag, gaia_paralax, egaia_paralax, Ag=0, teff_sun=5777, distance_gaia = 0, e_distance_gaia=0, npoints=10000):
-    meanlogg, stdlogg, meanmass, stdmass = logg_mass_iteractive_error(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_gmag, egaia_gmag, gaia_paralax, egaia_paralax, Ag=Ag, teff_sun=teff_sun, distance_gaia=distance_gaia, e_distance_gaia=e_distance_gaia, npoints=npoints)
-    r, er = MR.radius_torres2010_error(teffs, eteffs, meanlogg, stdlogg, fehs, efehs, npoints = npoints)
+def get_logg_mass_radius_gaia_torres(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_gmag, egaia_gmag, gaia_paralax, egaia_paralax, Ag=0, teff_sun=5777, distance_gaia = 0, e_distance_gaia=0, npoints=10000, calib='torres'):
+    meanlogg, stdlogg, meanmass, stdmass = logg_mass_iteractive_error(teffs, eteffs, loggs, eloggs, fehs, efehs, gaia_gmag, egaia_gmag, gaia_paralax, egaia_paralax, Ag=Ag, teff_sun=teff_sun, distance_gaia=distance_gaia, e_distance_gaia=e_distance_gaia, npoints=npoints, calib=calib)
+    r, er = MR.radius_torres2010_error(teffs, eteffs, meanlogg, stdlogg, fehs, efehs, npoints = npoints, calib=calib)
     return meanlogg, stdlogg, meanmass, stdmass, r, er
 
 
@@ -199,7 +199,9 @@ def main():
 
     loggh, eloggh, massh, emassh = logg_mass_iteractive_error(teff, eteff, loggs, eloggs, feh, efeh, gmag, egmag, par, epar)
     rh, erh = MR.radius_torres2010_error(teff, eteff, loggh, eloggh, feh, efeh)
-
+    print(loggh, eloggh, massh, emassh, rh, erh)
+    loggh, eloggh, massh, emassh = logg_mass_iteractive_error(teff, eteff, loggs, eloggs, feh, efeh, gmag, egmag, par, epar, calib='maxted')
+    rh, erh = MR.radius_torres2010_error(teff, eteff, loggh, eloggh, feh, efeh, calib='maxted')
     print(loggh, eloggh, massh, emassh, rh, erh)
 
 
